@@ -20,7 +20,7 @@ pacman::p_load(# Tidyverse packages including dplyr and ggplot2
 set.seed(1)
 
 # load data
-medicaid_expansion <- read_csv('data/medicaid_expansion.csv')
+medicaid_expansion <- read.csv('data/medicaid_expansion.csv', sep= ",")
 ```
 
 # Introduction
@@ -55,7 +55,12 @@ Create plots and provide 1-2 sentence analyses to answer the following questions
 - Which states were home to most uninsured Americans prior to 2014? How about in 2021? **Note**: 2010 state population is provided as a variable to answer this question. In an actual study you would likely use population estimates over time, but to simplify you can assume these numbers stay about the same.
 
 ```{r}
+summary(medicaid_expansion)
+```
+
+```{r}
 # highest and lowest uninsured rates
+
 ```
 
 ```{r}
@@ -74,12 +79,82 @@ Do the following:
 
 ```{r}
 # Parallel Trends plot
+
+#California as state adopted 1/1/2014
+#Utah as state that didnt adopt until 1/1/2020
+
+medicaid_expansion %>%
+  filter(State %in% c("California", "Utah")) %>%
+  ggplot() + 
+  geom_point(aes(x = year, 
+                 y = uninsured_rate, 
+                 color = State)) +
+  geom_line(aes(x = year, 
+                y = uninsured_rate, 
+                color = State)) +
+  geom_vline(aes(xintercept = 2014)) +
+  theme_fivethirtyeight() +
+  theme(axis.title = element_text()) +
+  ggtitle('California and Utah Uninsured Rate \n  before/after 2014 Medicaid expansion') +
+  xlab('Year') +
+  ylab('State Uninsured')
+
+# the two states do not move in parallel pre-2014; will pick Nebraska (didn't adopt until 1/10/2020) and see what happens
+
+medicaid_expansion %>%
+  filter(State %in% c("California", "Utah", "Nebraska")) %>%
+  ggplot() + 
+  geom_point(aes(x = year, 
+                 y = uninsured_rate, 
+                 color = State)) +
+  geom_line(aes(x = year, 
+                y = uninsured_rate, 
+                color = State)) +
+  geom_vline(aes(xintercept = 2014)) +
+  theme_fivethirtyeight() +
+  theme(axis.title = element_text()) +
+  ggtitle('California, Utah, and Nebraska Uninsured Rate \n  before/after 2014 Medicaid expansion') +
+  xlab('Year') +
+  ylab('State Uninsured')
+
 ```
+
 
 - Estimates a difference-in-differences estimate of the effect of the Medicaid expansion on the uninsured share of the population. You may follow the lab example where we estimate the differences in one pre-treatment and one post-treatment period, or take an average of the pre-treatment and post-treatment outcomes
 
 ```{r}
 # Difference-in-Differences estimation
+
+
+# california-nebraska
+cali_neb <- medicaid_expansion %>%
+  filter(State %in% c("California","Nebraska")) %>%
+  filter(year >= 2012.5 & year_qtr<= 2012.75) 
+
+# pre-treatment difference
+
+pre_diff <- cali_neb %>%
+  filter(year == 2012.5) %>%
+  select(state, 
+         lngdpcapita) %>%
+  spread(state, 
+         lngdpcapita) %>%
+  summarise(Colorado - Kansas)
+  
+# post-treatment difference
+
+post_diff <- kc %>%
+  filter(year_qtr == 2012.75) %>%
+  select(state, 
+         lngdpcapita) %>%
+  spread(state, 
+         lngdpcapita) %>%
+  summarise(Colorado - Kansas)
+
+# diff-in-diffs
+
+diff_in_diffs <- post_diff - pre_diff
+diff_in_diffs
 ```
 
 
