@@ -126,33 +126,27 @@ medicaid_expansion %>%
 # Difference-in-Differences estimation
 
 
-# california-nebraska
-cali_neb <- medicaid_expansion %>%
-  filter(State %in% c("California","Nebraska")) %>%
-  filter(year >= 2012.5 & year_qtr<= 2012.75) 
-
 # pre-treatment difference
-
-pre_diff <- cali_neb %>%
-  filter(year == 2012.5) %>%
-  select(state, 
-         lngdpcapita) %>%
-  spread(state, 
-         lngdpcapita) %>%
-  summarise(Colorado - Kansas)
+pre_diff <- medicaid_expansion %>%
+  filter(State %in% c("California","Nebraska")) %>%
+  filter(year == 2013) %>%
+  select(State, 
+         uninsured_rate) %>% 
+  spread(State, 
+         uninsured_rate) %>%
+  summarise(California - Nebraska)
   
 # post-treatment difference
-
-post_diff <- kc %>%
-  filter(year_qtr == 2012.75) %>%
-  select(state, 
-         lngdpcapita) %>%
-  spread(state, 
-         lngdpcapita) %>%
-  summarise(Colorado - Kansas)
+post_diff <- medicaid_expansion %>%
+  filter(State %in% c("California","Nebraska")) %>%
+  filter(year == 2015) %>%
+  select(State, 
+         uninsured_rate) %>%
+  spread(State, 
+         uninsured_rate) %>%
+  summarise(California - Nebraska)
 
 # diff-in-diffs
-
 diff_in_diffs <- post_diff - pre_diff
 diff_in_diffs
 ```
@@ -161,7 +155,7 @@ diff_in_diffs
 ## Discussion Questions
 
 - Card/Krueger's original piece utilized the fact that towns on either side of the Delaware river are likely to be quite similar to one another in terms of demographics, economics, etc. Why is that intuition harder to replicate with this data?
-- **Answer**:
+- **Answer**: There is likely a lot of heterogeneity 
 
 - What are the strengths and weaknesses of using the parallel trends assumption in difference-in-differences estimates?
 - **Answer**:
