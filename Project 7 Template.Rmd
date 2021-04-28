@@ -61,6 +61,8 @@ summary(medicaid_expansion)
 ```{r}
 # highest and lowest uninsured rates
 
+
+
 ```
 
 ```{r}
@@ -155,11 +157,19 @@ diff_in_diffs
 ## Discussion Questions
 
 - Card/Krueger's original piece utilized the fact that towns on either side of the Delaware river are likely to be quite similar to one another in terms of demographics, economics, etc. Why is that intuition harder to replicate with this data?
-- **Answer**: There is likely a lot of heterogeneity 
+- **Answer**: There is likely a lot of heterogeneity between the states in terms of demographics, SES, other covariates.  This would violate our parallel trends assumption.  Essentially we want to make the change in the uninsured rate  in the control group (here Nebraska) to be a good proxy for the counterfactual change in uninsured rate in our treatment group (here California) had they not been treated (i.e expanded Medicaid). This is less likely to be the case if there are a variety of factors that make the two states different.
 
 - What are the strengths and weaknesses of using the parallel trends assumption in difference-in-differences estimates?
-- **Answer**:
+- **Answer**: 
+Pros: 
+- 
+- The assumption allows you to use just one pre- and one post-treatment period
+- You are able to use smaller time periods where difference between treatment and control groups are constant 
 
+Cons:
+- There is no statistical test for this assumption
+- Is less likely to hold with longer time periods
+- Violation of this assumption will lead to biased estimates
 
 # Synthetic Control
 
