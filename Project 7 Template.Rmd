@@ -284,23 +284,77 @@ Do the following:
 
 - Estimate a multisynth model that treats each state individually. Choose a fraction of states that you can fit on a plot and examine their treatment effects.
 
-```{r}
-# multisynth model states
+```{r prep}
+# add permanent year/treatment fields
+medicaid_expansion <- medicaid_expansion %>%
+  mutate(Year_Adopted = substr(Date_Adopted, 1, 4),
+         Year_Adopted = ifelse(is.na(Year_Adopted), Inf, Year_Adopted),
+         treatment = 1 * (year >= Year_Adopted))
+```
+
+```{r create SASC}
+# with a choice of nu
+sa_syn <- multisynth(uninsured_rate ~ treatment, State, year, 
+                     medicaid_expansion, nu = 0, n_leads = 7)
+
+sa_syn_summ <- summary(sa_syn)
+
+sa_syn
+```
+
+```{r plot SASC}
+sa_syn_summ$att %>%
+  mutate(Level = ifelse(Level == "District of Columbia", "DC", Level)) %>%
+  filter(Level != "Average") %>%
+  ggplot(aes(x = Time, y = Estimate, color = Level)) +
+  geom_point() +
+  geom_line() +
+  geom_vline(xintercept = 0) +
+  scale_y_continuous(breaks = seq(-0.05, 0.025, 0.025)) +
+  theme_fivethirtyeight() +
+  theme(axis.title = element_text(),
+        axis.text.y = element_text(size = 5),
+        legend.position = 'None') +
+  ggtitle('Synthetic Controls for State Medicaid Expansion') +
+  xlab('Time') +
+  ylab('Uninsured Rate') +
+  facet_wrap(~Level)
 ```
 
 - Estimate a multisynth model using time cohorts. For the purpose of this exercise, you can simplify the treatment time so that states that adopted Medicaid expansion within the same year (i.e. all states that adopted epxansion in 2016) count for the same cohort. Plot the treatment effects for these time cohorts.
 
-```{r}
-# multisynth model time cohorts
+```{r time cohort SASC}
+sa_tc_syn <- multisynth(uninsured_rate ~ treatment, State, year, 
+                     medicaid_expansion, n_leads = 7, time_cohort = TRUE)
+
+sa_tc_syn_summ <- summary(sa_tc_syn)
+
+sa_tc_syn
 ```
 
+```{r plot time cohort SASC}
+sa_tc_syn_summ$att %>%
+  filter(Level != "Average") %>%
+  ggplot(aes(x = Time, y = Estimate, color = Level)) +
+  geom_point() +
+  geom_line() +
+  geom_vline(xintercept = 0) +
+  theme_fivethirtyeight() +
+  theme(axis.title = element_text(),
+        legend.position = 'None') +
+  ggtitle('Synthetic Controls for State Medicaid Expansion') +
+  xlab('Time') +
+  ylab('Uninsured Rate') +
+  facet_wrap(~Level)
+```
 ## Discussion Questions
 
 - One feature of Medicaid is that it is jointly administered by the federal government and the states, and states have some flexibility in how they implement Medicaid. For example, during the Trump administration, several states applied for waivers where they could add work requirements to the eligibility standards (i.e. an individual needed to work for 80 hours/month to qualify for Medicaid). Given these differences, do you see evidence for the idea that different states had different treatment effect sizes?
-- **Answer**: 
+- **Answer**: There is evidence of differences in treatment size: many states experienced a marked decrease in the year of adoption, (Arizona, California, Louisiana, Nevada, New Mexico, etc.). Other states experienced negligible changes in their uninsured rates, and several such as Massachusetts and D.C. even experienced increases following Medicaid expansion. While there is evidence for differential treatment effects across states, it is unclear that this is related to the eligibility standards; both Kentucky (which has a work requirement) and California (which does not) experienced substantial decreases in their uninsured populations in their first years of expansion.
+
 
 - Do you see evidence for the idea that early adopters of Medicaid expansion enjoyed a larger decrease in the uninsured population?
-- **Answer**: 
+- **Answer**: There does seem to be an advantage for early adopters of Medicaid expansion. With the exception of the 2020 Medicaid expansion cohort, each cohort experienced a decrease of around 1 percentage point in the year of adoption. State cohorts which adopted in the first three years (2014-2016) experienced further decreases in the uninsured rates in subsequent years. While it is unclear whether states in the 2019 cohort will replicate that pattern, the “late adopters” of the 2020 cohort experienced an increase in the uninsured rate in the year of adoption.
 
 # General Discussion Questions
 
