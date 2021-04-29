@@ -14,7 +14,8 @@ pacman::p_load(# Tidyverse packages including dplyr and ggplot2
                tidyverse,
                ggthemes,
                augsynth,
-               gsynth)
+               gsynth,
+               scales)
 
 # set seed
 set.seed(1)
@@ -69,20 +70,73 @@ high_low %>%
   ggplot(aes(x = uninsured_rate, y = State, color = State)) +
   geom_point() + 
   ggtitle('Rate of Uninsured by State prior to 2014') +
-    theme_fivethirtyeight() +
-  theme(axis.title = element_text(),
-        legend.position = 'None') +
-  xlab('Uninsured Rate') +
-  ylab('State') +
- theme(axis.text.x = element_text(vjust = -10))
+  scale_x_continuous('Uninsured Rate', labels = percent) +
+  scale_y_discrete('State') +
+  theme_fivethirtyeight() +
+  theme(plot.title = element_text(size = 16, hjust = 0.5),
+        axis.title = element_text(size = 12),
+        axis.text.y = element_text(size = 5),
+        legend.position = 'None')
+
+## States with 5 highest and lowest average pre-2014 uninsured rates
+high_low %>%
+  group_by(State) %>%
+  summarize(mean_uninsured_rate = mean(uninsured_rate)) %>%
+  arrange(mean_uninsured_rate) %>%
+  slice(c(1:5, 47:51)) %>%
+  ggplot(aes(x = reorder(State, -mean_uninsured_rate), y = mean_uninsured_rate, fill = State)) +
+  geom_col() + 
+  ggtitle('Highest/Lowest Average Pre-2014 Uninsured Rates') +
+  scale_y_continuous('Uninsured Rate', labels = percent) +
+  scale_x_discrete('State') +
+  theme_fivethirtyeight() +
+  theme(plot.title = element_text(size = 16, hjust = 0.5),
+        axis.title = element_text(size = 12),
+        axis.text.x = element_text(hjust = 1, angle = 45),
+        legend.position = 'None')
 
 ```
+
+While the uninsured rates vary widely across time, with ranges as wide as 5 percentage points for individual states such as Wisconsin and Wyoming during the pre-2014 period, several states stand out as having particularly high and low rates of being uninsured. Nevada, Florida, New Mexico, and Texas all had uninsured rates of around 20% or higher, while the best-performing "states" of Iowa, Minnesota, DC, Hawaii, and Massachussets all had rates under 10%.
 
 ```{r}
-# most uninsured Americans
+high_low %>%
+  mutate(uninsured = uninsured_rate*population) %>%
+  group_by(State) %>%
+  summarize(mean_uninsured = mean(uninsured)) %>%
+  arrange(desc(mean_uninsured)) %>%
+  slice(1:10) %>%
+  ggplot(aes(x = reorder(State, -mean_uninsured), y = mean_uninsured, fill = State)) +
+  geom_col() + 
+  ggtitle('Largest Average Uninsured Population Pre-2014') +
+  scale_y_continuous('Uninsured Population', labels = comma) +
+  scale_x_discrete('State') +
+  theme_fivethirtyeight() +
+  theme(plot.title = element_text(size = 16, hjust = 0.5),
+        axis.title = element_text(size = 12),
+        axis.text.x = element_text(hjust = 1, angle = 45),
+        legend.position = 'None')
+
+## 2020 largest uninsured population
+medicaid_expansion %>%
+  filter(year == 2020) %>%
+  mutate(uninsured = uninsured_rate*population) %>%
+  arrange(desc(uninsured)) %>%
+  slice(1:10) %>%
+  ggplot(aes(x = reorder(State, -uninsured), y = uninsured, fill = State)) +
+  geom_col() + 
+  ggtitle('Largest Uninsured Populations 2020') +
+  scale_y_continuous('Uninsured Population', labels = comma) +
+  scale_x_discrete('State') +
+  theme_fivethirtyeight() +
+  theme(plot.title = element_text(size = 16, hjust = 0.5),
+        axis.title = element_text(size = 12),
+        axis.text.x = element_text(hjust = 1, angle = 45),
+        legend.position = 'None')
 
 ```
 
+Examining the actual populations that were uninsured during the pre-2014 time period, California, Texas, and Florida top the list due to a combination of their relatively large populations and high uninsurance rates. While Texas and Florida had among the highest average uninsured rates, California had the largest uninsured population due to its sheer population size. While the same 10 states had the largest uninsured populations in the pre-2014 period and in 2020 as a function of their large populations, California notably cut its uninsured population by more than 50%. The relatively stable size of Texas' uninsured population, on the other hand, gave it by far the largest uninsured population in 2020.
 
 # Difference-in-Differences Estimation
 
