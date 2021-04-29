@@ -61,12 +61,26 @@ summary(medicaid_expansion)
 ```{r}
 # highest and lowest uninsured rates
 
+high_low <-
+  medicaid_expansion[order(-medicaid_expansion$uninsured_rate),] %>%
+  filter(year < 2014)
 
+high_low %>%
+  ggplot(aes(x = uninsured_rate, y = State, color = State)) +
+  geom_point() + 
+  ggtitle('Rate of Uninsured by State prior to 2014') +
+    theme_fivethirtyeight() +
+  theme(axis.title = element_text(),
+        legend.position = 'None') +
+  xlab('Uninsured Rate') +
+  ylab('State') +
+ theme(axis.text.x = element_text(vjust = -10))
 
 ```
 
 ```{r}
 # most uninsured Americans
+
 ```
 
 
@@ -162,7 +176,7 @@ diff_in_diffs
 - What are the strengths and weaknesses of using the parallel trends assumption in difference-in-differences estimates?
 - **Answer**: 
 Pros: 
-- 
+- Easily interpretable 
 - The assumption allows you to use just one pre- and one post-treatment period
 - You are able to use smaller time periods where difference between treatment and control groups are constant 
 
