@@ -200,10 +200,11 @@ sa_tc_syn_summ$att %>%
 ## Discussion Questions
 
 - One feature of Medicaid is that it is jointly administered by the federal government and the states, and states have some flexibility in how they implement Medicaid. For example, during the Trump administration, several states applied for waivers where they could add work requirements to the eligibility standards (i.e. an individual needed to work for 80 hours/month to qualify for Medicaid). Given these differences, do you see evidence for the idea that different states had different treatment effect sizes?
-- **Answer**: 
+- **Answer**: There is evidence of differences in treatment size: many states experienced a marked decrease in the year of adoption, (Arizona, California, Louisiana, Nevada, New Mexico, etc.). Other states experienced negligible changes in their uninsured rates, and several such as Massachusetts and D.C. even experienced increases following Medicaid expansion. While there is evidence for differential treatment effects across states, it is unclear that this is related to the eligibility standards; both Kentucky (which has a work requirement) and California (which does not) experienced substantial decreases in their uninsured populations in their first years of expansion.
+
 
 - Do you see evidence for the idea that early adopters of Medicaid expansion enjoyed a larger decrease in the uninsured population?
-- **Answer**: 
+- **Answer**: There does seem to be an advantage for early adopters of Medicaid expansion. With the exception of the 2020 Medicaid expansion cohort, each cohort experienced a decrease of around 1 percentage point in the year of adoption. State cohorts which adopted in the first three years (2014-2016) experienced further decreases in the uninsured rates in subsequent years. While it is unclear whether states in the 2019 cohort will replicate that pattern, the “late adopters” of the 2020 cohort experienced an increase in the uninsured rate in the year of adoption.
 
 # General Discussion Questions
 
