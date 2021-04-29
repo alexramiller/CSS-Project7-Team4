@@ -148,6 +148,8 @@ sa_syn <- multisynth(uninsured_rate ~ treatment, State, year,
                      medicaid_expansion, nu = 0, n_leads = 7)
 
 sa_syn_summ <- summary(sa_syn)
+
+sa_syn
 ```
 
 ```{r plot SASC}
@@ -176,6 +178,8 @@ sa_tc_syn <- multisynth(uninsured_rate ~ treatment, State, year,
                      medicaid_expansion, n_leads = 7, time_cohort = TRUE)
 
 sa_tc_syn_summ <- summary(sa_tc_syn)
+
+sa_tc_syn
 ```
 
 ```{r plot time cohort SASC}
