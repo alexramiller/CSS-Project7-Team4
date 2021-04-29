@@ -21,11 +21,6 @@ set.seed(1)
 
 # load data
 medicaid_expansion <- read_csv('data/medicaid_expansion.csv')
-
-medicaid_expansion <- medicaid_expansion %>%
-  mutate(Year_Adopted = substr(Date_Adopted, 1, 4),
-         Year_Adopted = ifelse(is.na(Year_Adopted), Inf, Year_Adopted),
-         treatment = 1 * (year >= Year_Adopted))
 ```
 
 # Introduction
@@ -141,6 +136,14 @@ Do the following:
 Do the following:
 
 - Estimate a multisynth model that treats each state individually. Choose a fraction of states that you can fit on a plot and examine their treatment effects.
+
+```{r prep}
+# add permanent year/treatment fields
+medicaid_expansion <- medicaid_expansion %>%
+  mutate(Year_Adopted = substr(Date_Adopted, 1, 4),
+         Year_Adopted = ifelse(is.na(Year_Adopted), Inf, Year_Adopted),
+         treatment = 1 * (year >= Year_Adopted))
+```
 
 ```{r create SASC}
 # with a choice of nu
