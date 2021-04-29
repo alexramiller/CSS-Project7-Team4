@@ -20,7 +20,7 @@ pacman::p_load(# Tidyverse packages including dplyr and ggplot2
 set.seed(1)
 
 # load data
-medicaid_expansion <- read_csv('data/medicaid_expansion.csv')
+medicaid_expansion <- read.csv('data/medicaid_expansion.csv', sep= ",")
 ```
 
 # Introduction
@@ -55,11 +55,32 @@ Create plots and provide 1-2 sentence analyses to answer the following questions
 - Which states were home to most uninsured Americans prior to 2014? How about in 2021? **Note**: 2010 state population is provided as a variable to answer this question. In an actual study you would likely use population estimates over time, but to simplify you can assume these numbers stay about the same.
 
 ```{r}
+summary(medicaid_expansion)
+```
+
+```{r}
 # highest and lowest uninsured rates
+
+high_low <-
+  medicaid_expansion[order(-medicaid_expansion$uninsured_rate),] %>%
+  filter(year < 2014)
+
+high_low %>%
+  ggplot(aes(x = uninsured_rate, y = State, color = State)) +
+  geom_point() + 
+  ggtitle('Rate of Uninsured by State prior to 2014') +
+    theme_fivethirtyeight() +
+  theme(axis.title = element_text(),
+        legend.position = 'None') +
+  xlab('Uninsured Rate') +
+  ylab('State') +
+ theme(axis.text.x = element_text(vjust = -10))
+
 ```
 
 ```{r}
 # most uninsured Americans
+
 ```
 
 
@@ -74,23 +95,95 @@ Do the following:
 
 ```{r}
 # Parallel Trends plot
+
+#California as state adopted 1/1/2014
+#Utah as state that didnt adopt until 1/1/2020
+
+medicaid_expansion %>%
+  filter(State %in% c("California", "Utah")) %>%
+  ggplot() + 
+  geom_point(aes(x = year, 
+                 y = uninsured_rate, 
+                 color = State)) +
+  geom_line(aes(x = year, 
+                y = uninsured_rate, 
+                color = State)) +
+  geom_vline(aes(xintercept = 2014)) +
+  theme_fivethirtyeight() +
+  theme(axis.title = element_text()) +
+  ggtitle('California and Utah Uninsured Rate \n  before/after 2014 Medicaid expansion') +
+  xlab('Year') +
+  ylab('State Uninsured')
+
+# the two states do not move in parallel pre-2014; will pick Nebraska (didn't adopt until 1/10/2020) and see what happens
+
+medicaid_expansion %>%
+  filter(State %in% c("California", "Utah", "Nebraska")) %>%
+  ggplot() + 
+  geom_point(aes(x = year, 
+                 y = uninsured_rate, 
+                 color = State)) +
+  geom_line(aes(x = year, 
+                y = uninsured_rate, 
+                color = State)) +
+  geom_vline(aes(xintercept = 2014)) +
+  theme_fivethirtyeight() +
+  theme(axis.title = element_text()) +
+  ggtitle('California, Utah, and Nebraska Uninsured Rate \n  before/after 2014 Medicaid expansion') +
+  xlab('Year') +
+  ylab('State Uninsured')
+
 ```
+
 
 - Estimates a difference-in-differences estimate of the effect of the Medicaid expansion on the uninsured share of the population. You may follow the lab example where we estimate the differences in one pre-treatment and one post-treatment period, or take an average of the pre-treatment and post-treatment outcomes
 
 ```{r}
 # Difference-in-Differences estimation
+
+
+# pre-treatment difference
+pre_diff <- medicaid_expansion %>%
+  filter(State %in% c("California","Nebraska")) %>%
+  filter(year == 2013) %>%
+  select(State, 
+         uninsured_rate) %>% 
+  spread(State, 
+         uninsured_rate) %>%
+  summarise(California - Nebraska)
+  
+# post-treatment difference
+post_diff <- medicaid_expansion %>%
+  filter(State %in% c("California","Nebraska")) %>%
+  filter(year == 2015) %>%
+  select(State, 
+         uninsured_rate) %>%
+  spread(State, 
+         uninsured_rate) %>%
+  summarise(California - Nebraska)
+
+# diff-in-diffs
+diff_in_diffs <- post_diff - pre_diff
+diff_in_diffs
 ```
 
 
 ## Discussion Questions
 
 - Card/Krueger's original piece utilized the fact that towns on either side of the Delaware river are likely to be quite similar to one another in terms of demographics, economics, etc. Why is that intuition harder to replicate with this data?
-- **Answer**:
+- **Answer**: There is likely a lot of heterogeneity between the states in terms of demographics, SES, other covariates.  This would violate our parallel trends assumption.  Essentially we want to make the change in the uninsured rate  in the control group (here Nebraska) to be a good proxy for the counterfactual change in uninsured rate in our treatment group (here California) had they not been treated (i.e expanded Medicaid). This is less likely to be the case if there are a variety of factors that make the two states different.
 
 - What are the strengths and weaknesses of using the parallel trends assumption in difference-in-differences estimates?
-- **Answer**:
+- **Answer**: 
+Pros: 
+- Easily interpretable 
+- The assumption allows you to use just one pre- and one post-treatment period
+- You are able to use smaller time periods where difference between treatment and control groups are constant 
 
+Cons:
+- There is no statistical test for this assumption
+- Is less likely to hold with longer time periods
+- Violation of this assumption will lead to biased estimates
 
 # Synthetic Control
 
