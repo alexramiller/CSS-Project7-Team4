@@ -1,10 +1,12 @@
 ---
 title: "Project 7: Difference-in-Differences and Synthetic Control"
+author: "Mahader, Alex, and Kelly"
 output: html_document
 ---
 
 
 ```{r}
+
 # Install and load packages 
 if (!require("pacman")) install.packages("pacman")
 
@@ -195,7 +197,6 @@ medicaid_expansion %>%
 ```{r}
 # Difference-in-Differences estimation
 
-
 # pre-treatment difference
 pre_diff <- medicaid_expansion %>%
   filter(State %in% c("California","Nebraska")) %>%
@@ -228,7 +229,8 @@ diff_in_diffs
 - **Answer**: There is likely a lot of heterogeneity between the states in terms of demographics, SES, other covariates.  This would violate our parallel trends assumption.  Essentially we want to make the change in the uninsured rate  in the control group (here Nebraska) to be a good proxy for the counterfactual change in uninsured rate in our treatment group (here California) had they not been treated (i.e expanded Medicaid). This is less likely to be the case if there are a variety of factors that make the two states different.
 
 - What are the strengths and weaknesses of using the parallel trends assumption in difference-in-differences estimates?
-- **Answer**: 
+- **Answer**:  
+
 Pros: 
 - Easily interpretable 
 - The assumption allows you to use just one pre- and one post-treatment period
@@ -249,32 +251,174 @@ Do the following:
 
 - Choose a state that adopted the Medicaid expansion after January 1, 2014. Construct a non-augmented synthetic control and plot the results (both pre-treatment fit and post-treatment differences). Also report the average ATT and L2 imbalance.
 
+First, we identify states that adopted the medicaid expansion after 2014; then, we create a donor pool of states that were never treated for our synthetic control. 
+```{r} 
+#identify states that adopted medicaid expansion after 1/1/2014
+medicaid_expansion %>% 
+  filter(lubridate::year(Date_Adopted) > 2014) %>% 
+  select(State, Date_Adopted) %>% 
+  unique() 
+
+# select states that never adopted for donor pool 
+donor_pool <- medicaid_expansion %>% 
+  filter(is.na(Date_Adopted)) %>% 
+  select(State) %>% 
+  unique() 
+
+```
+
+Now, we create a synthetic control for Pennsylvania from the donor pool. 
 ```{r}
 # non-augmented synthetic control
+
+medicaid_expansion %>% select(State, Date_Adopted) %>% unique() %>% count() # check no duplicated values for date adopted, good
+
+# first create treatment flag for whether medicaid expansion had happened at time of obs -- not sure how to think about mid year adoptions 
+delayed_adoption <- medicaid_expansion %>% 
+  filter(State=="Pennsylvania"|State %in% donor_pool$State) %>% 
+  mutate(Treatment = ifelse(lubridate::year(Date_Adopted) > year | is.na(Date_Adopted), 0, 1)) 
+  
+
+syn <- augsynth(form = uninsured_rate ~ Treatment,
+                unit = State, 
+                time = year, 
+                data = delayed_adoption,
+                t_int = 2015,
+                progfunc = "None", # no augment 
+                scm = T) 
+
+syn_summary <- summary(syn)
+
+# save the l2 imbalance and ATT estimates, rounding to report out 
+syn_L2 <- syn_summary[["l2_imbalance"]] %>% round(4) 
+syn_ATT <- syn_summary[["average_att"]][["Estimate"]] %>% round(4)
+
+plot(syn)  
+# synthetic pennsylvania underestimating pennsylvania outcome before treatment, and estimate gets worse right before treatment 
+
+```
+The L2 imbalance for non-augmented synthetic control is `r syn_L2`; the average treatment on the treated is `r syn_ATT`. 
+
+Look at weights for contributing states: almost entirely coming from Maine with a tiny fraction from Wisconsin. 
+```{r, warning = FALSE} 
+# Convert weights to dataframe
+data.frame(syn$weights) %>%
+  # change index to a column
+  tibble::rownames_to_column('State') %>%
+  ggplot() +
+  # stat = identity to take the literal value instead of a count for geom_bar()
+  geom_bar(aes(x = State, 
+               y = syn.weights),
+           stat = 'identity') +
+  theme_fivethirtyeight() +
+  theme(axis.title = element_text(),
+        axis.text.x = element_text(angle = 90)) +
+  ggtitle('Synthetic Control Weights') +
+  xlab('State') +
+  ylab('Weight') 
+
 ```
 
 - Re-run the same analysis but this time use an augmentation (default choices are Ridge, Matrix Completion, and GSynth). Create the same plot and report the average ATT and L2 imbalance.
 
-```{r}
+```{r, warning = FALSE}
 # augmented synthetic control
+augsyn <- augsynth(form = uninsured_rate ~ Treatment,
+                unit = State, 
+                time = year, 
+                data = delayed_adoption,
+                t_int = 2015,
+                progfunc = "Ridge", # ridge   
+                scm = T) 
+
+augsyn_summary <- summary(augsyn)
+
+# save the l2 imbalance and ATT estimates, rounding to report out 
+augsyn_L2 <- augsyn_summary[["l2_imbalance"]] %>% round(4) 
+augsyn_ATT <- augsyn_summary[["average_att"]][["Estimate"]] %>% round(4)
+
+plot(augsyn)  
+
 ```
+The L2 imbalance for augmented synthetic control is `r augsyn_L2`; the average treatment on the treated is `r augsyn_ATT`. There is substantially better balance with oour augmented synthetic control, and the ATT, while still negative, is now smaller in magnitude. 
+
+```{r} 
+
+# add difference between synthetic pennsylvania and pennsylvania to obtain estimate 
+penn_synpenn <- medicaid_expansion %>%
+  filter(State == "Pennsylvania") %>%
+  bind_cols(difference = syn_summary$att$Estimate, 
+            augdifference = augsyn_summary$att$Estimate) %>% 
+  mutate(synthetic_pennsylvania = uninsured_rate + difference, 
+         augsynthetic_pennsylvania = uninsured_rate + augdifference)
+
+# Plot
+
+penn_synpenn %>%
+  ggplot() +
+  geom_point(aes(x = year, 
+                 y = uninsured_rate, 
+                 color = 'Pennsylvania')) +
+  geom_line(aes(x = year, 
+                y = uninsured_rate, 
+                color = 'Pennsylvania')) +
+  geom_point(aes(x = year, 
+                 y = synthetic_pennsylvania, 
+                 color = 'Synthetic Pennsylvania')) +
+  geom_line(aes(x = year, 
+                y = synthetic_pennsylvania, 
+                color = 'Synthetic Pennsylvania')) +
+  geom_point(aes(x = year, 
+                 y = augsynthetic_pennsylvania, 
+                 color = 'Aug Synthetic Pennsylvania')) +
+  geom_line(aes(x = year, 
+                y = augsynthetic_pennsylvania, 
+                color = 'Aug Synthetic Pennsylvania')) +
+  scale_color_manual(values = c('Pennsylvania' = 'red', 'Synthetic Pennsylvania' = 'blue', 'Aug Synthetic Pennsylvania' = 'green')) +
+  geom_vline(aes(xintercept = 2015)) +
+  theme_fivethirtyeight() +
+  theme(axis.title = element_text()) +
+  ggtitle('PA against non- and augmented synthetic PAs') +
+  xlab('Year') +
+  ylab('State Uninsured Rate')
+
+```
+
+As captured in the L2 imbalance and in this graph, the augmented synthetic control aligns more closely with Pennsylvania than the non-augmented synthetic control.
 
 - Plot barplots to visualize the weights of the donors.
 
 ```{r}
 # barplots of weights
+# Convert weights to dataframe
+data.frame(augsyn$weights) %>%
+  # change index to a column
+  tibble::rownames_to_column('State') %>%
+  ggplot() +
+  # stat = identity to take the literal value instead of a count for geom_bar()
+  geom_bar(aes(x = State, 
+               y = augsyn.weights),
+           stat = 'identity') +
+  theme_fivethirtyeight() +
+  theme(axis.title = element_text(),
+        axis.text.x = element_text(angle = 90)) +
+  ggtitle('Augmented Synthetic Control Weights') +
+  xlab('State') +
+  ylab('Weight') 
+
 ```
+While Maine is still the largest donor, a few more states are positively weighted with Florida, Georgia, Mississippi, Oklahoma, and Texas now being negatively weighted. 
 
 **HINT**: Is there any preprocessing you need to do before you allow the program to automatically find weights for donor states?
 
 ## Discussion Questions
 
-
 - What are the advantages and disadvantages of synthetic control compared to difference-in-differences estimators?
-- **Answer**: 
+- **Answer**: As mentioned above, the simplicity of difference-in-differences makes it easily interpretable, but comes at a cost of only being able to compare two units. Synthetic control allows us to draw from multiple comparison units to create a control that may more closely align with the pre-treatment outcome trends of the treated unit, as we saw above in question 4 where it was difficult to find a good match for our selected treated state (California). Drawing from multiple comparison units also spreads the threat of post-treatment confounding across multiple units, rather than rely on there being none in our singular control unit with difference-in-differences. 
 
 - One of the benefits of synthetic control is that the weights are bounded between [0,1] and the weights must sum to 1. Augmentation might relax this assumption by allowing for negative weights. Does this create an interpretation problem, and how should we balance this consideration against the improvements augmentation offers in terms of imbalance in the pre-treatment period?
-- **Answer**:
+
+- **Answer**: Having negative weights makes understanding how the comparison outcomes are constructed a bit more challenging but doesn't change how we interpret the results. As we can see, the augmented synthetic control outcomes align more closely pre-treatment with Pennsylvania's uninsured rate than the non-augmented outcomes do. While adding more complexity might result in overfitting, regularization mitigates this concern. Overall, it might not be worth the interpretation trade-off to use augmented synthetic controls where synthetic controls do a good job predicting pre-treatment outcomes, but may be a viable alternative when they provide a substantial improvement over non-augmented synthetic controls. 
 
 # Staggered Adoption Synthetic Control
 
@@ -359,7 +503,8 @@ sa_tc_syn_summ$att %>%
 # General Discussion Questions
 
 - Why are DiD and  synthetic control estimates well suited to studies of aggregated units like cities, states, countries, etc?
-- **Answer**:
+- **Answer**: These methods allow us to look at aggregate level exposures (e.g. city exposed to an event/policy change) and compare differences in outcome due to that exposure.  They also allow us to measure these aggregate events (e.g. policy intervention) that are often infrequent, which is not easily done via traditional regression analysis (which often requires large sample sizes and multiple observations for estimating effects of a treatment/intervention).
+
 
 - What role does selection into treatment play in DiD/synthetic control versus regression discontinuity? When would we want to use either method?
-- **Answer**:
+- **Answer**: We would want to use DiD when we can make the assumption that the difference between our groups of comparison is constant over time. In other words, we assume that the trends in our outcome of interest would be the same for each group in the absence of treatment. Additionally, selection into treatment is often defined by whether such a group was exposed to some aggregate event while another group was not/other groups were not (e.g. tobacco policy enacted in California but not in other states). In regression discontinuity, on the other hand, a cutoff/threshold is assigned and groups are assigned to treatment or control groups based solely on this cutoff score (ie. selection into treatment is based on a cutoff value). It might make sense to use this kind of analysis if you are trying to target a certain treatment to a select group of people (e.g. treatment to the most ill patients). The assumption with regression discontinuity design is that the observations just below and above the cutoff/threshold are relatively comparable. 
