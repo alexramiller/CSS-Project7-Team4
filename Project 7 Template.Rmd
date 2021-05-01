@@ -410,11 +410,12 @@ data.frame(augsyn$weights) %>%
 While Maine is still the largest donor, a few more states are positively weighted with Florida, Georgia, Mississippi, Oklahoma, and Texas now being negatively weighted. 
 
 **HINT**: Is there any preprocessing you need to do before you allow the program to automatically find weights for donor states?
+Yes—we need to limit the donor pool to those states that were never treated in any time period, even post treatment. One limitation here is that those states who never implemented the medicaid expansion might be contextually different than those that did. 
 
 ## Discussion Questions
 
 - What are the advantages and disadvantages of synthetic control compared to difference-in-differences estimators?
-- **Answer**: As mentioned above, the simplicity of difference-in-differences makes it easily interpretable, but comes at a cost of only being able to compare two units. Synthetic control allows us to draw from multiple comparison units to create a control that may more closely align with the pre-treatment outcome trends of the treated unit, as we saw above in question 4 where it was difficult to find a good match for our selected treated state (California). Drawing from multiple comparison units also spreads the threat of post-treatment confounding across multiple units, rather than rely on there being none in our singular control unit with difference-in-differences. 
+- **Answer**: As mentioned above, the simplicity of difference-in-differences makes it easily interpretable, but comes at a cost of only being able to compare two units. While slightly more complicated to interpret, synthetic control allows us to draw from multiple comparison units to create a counterfactual that may more closely align with the pre-treatment outcome trends of the treated unit, as we saw above in question 4 where it was difficult to find a good match for our selected treated state (California). Drawing from multiple comparison units also spreads the risk of post-treatment confounding across multiple units, rather than rely on there being none in our singular control unit with difference-in-differences. 
 
 - One of the benefits of synthetic control is that the weights are bounded between [0,1] and the weights must sum to 1. Augmentation might relax this assumption by allowing for negative weights. Does this create an interpretation problem, and how should we balance this consideration against the improvements augmentation offers in terms of imbalance in the pre-treatment period?
 
